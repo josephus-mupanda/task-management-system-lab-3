@@ -1,34 +1,60 @@
-# Task Management System (Lab 2)
+# Task Management System (Lab 3)
 
 A console project and task manager in Java 21. You can create projects, add tasks, give them to users, change their status and see how complete each project is.
 
-This lab continues Lab 1. The features are the same. What changed is the code: it was cleaned up, invalid input now throws custom exceptions instead of crashing, the main logic has JUnit 5 tests, and the work is tracked with Git branches.
-
-Data is still kept in memory in arrays, so nothing is saved when the program closes.
+**This lab is the next step of Lab 2.** It starts from the Lab 2 code ([task-management-system-lab-2](https://github.com/josephus-mupanda/task-management-system-lab-2)) and keeps all its features. Lab 3 adds five things on top of it: collections, functional programming, regex validation, file persistence and concurrency.
 
 ## Contents
 
-1. [What changed from Lab 1](#what-changed-from-lab-1)
+1. [From Lab 2 to Lab 3](#from-lab-2-to-lab-3)
 2. [How to run](#how-to-run)
 3. [Running the tests](#running-the-tests)
 4. [Using the program](#using-the-program)
-5. [Exceptions](#exceptions)
-6. [Roles](#roles)
+5. [Sample console output](#sample-console-output)
+6. [The data file](#the-data-file)
 7. [Class diagram](#class-diagram)
-8. [Features and user stories](#features-and-user-stories)
+8. [Lab requirements and where they are](#lab-requirements-and-where-they-are)
 9. [Git workflow](#git-workflow)
 10. [Project structure](#project-structure)
+11. [Known limits](#known-limits)
 
-## What changed from Lab 1
+## From Lab 2 to Lab 3
 
-- **Exceptions:** methods used to return `null` or `false` when something was wrong. Now they throw custom exceptions (`utils/exceptions`) with a clear message.
-- **Validation:** in Lab 1, `ValidationUtils` read the keyboard and looped. Now it only holds the rules and throws `InvalidInputException`. `ConsoleMenu` reads the input and uses try-catch to ask again.
-- **Menus:** every menu loop has a try-catch, so an error shows a message and the menu keeps working.
-- **Users:** users were stored inside `ConsoleMenu`. Now `UserService` keeps them and checks the email and the role.
-- **Printing:** services used to print tables. Now the services only do the work, and all printing is in `ConsoleMenu`, with small utility methods (`printHeader`, `printError`, `printSuccess`, `formatPercent`).
-- **IDs:** IDs are now text like `PRJ001`, `TSK001` and `U001`, created by the services.
-- **Empty projects:** a project with no tasks used to show 0%. Now `calculateCompletionPercentage()` throws `EmptyProjectException`, the tables show N/A, and the average skips it.
-- **Tests:** there were none. Now there are 30 in `test/`.
+### Kept from Lab 2
+
+These parts work the same way as in Lab 2:
+
+- the features: project catalog, tasks, status reports, users and switching user;
+- the roles: a regular member can view and add, an admin can also update and remove (`canModify()`);
+- the five custom exceptions and the way they are handled: a typing mistake is asked again, a failed operation shows the error and returns to the menu;
+- the layers: models check the data, services do the work, `ConsoleMenu` reads the keyboard and prints;
+- the main Lab 2 tests (completion %, empty project, adding and updating tasks), updated to the new IDs.
+
+### New in Lab 3
+
+| Lab 3 feature | What was added | Where |
+|---|---|---|
+| 1. Collections and Streams | projects in a `HashMap`, tasks in an `ArrayList`; catalog filter "Completed Projects (above 70%)"; remove a project | `ProjectService`, `Project`, **`StreamService`** |
+| 2. Regex and functional validation | IDs typed by the user and checked with `P\d{3}` / `T\d{3}`; numbers and email checked with regex; `Predicate` for task ID uniqueness; functional interface for filtering | **`RegexValidator`**, **`TaskFilter`**, **`FunctionalUtils`**, `TaskService` |
+| 3. File persistence | load `data/projects_data.json` on startup, save it on exit, errors for a missing or malformed file | **`FileUtils`**, **`DataFileException`**, `Main`, **`data/projects_data.json`** |
+| 4. Concurrency | main menu option "Simulate Concurrent Updates" with threads or a parallel stream; `synchronized` methods | **`ConcurrencyService`**, `Project`, `Task`, `ProjectService`, `TaskService` |
+| 5. Testing and Git | one test per Lab 3 requirement: streams, files, regex, threads; one Git branch per feature | **`StreamOperationsTest`**, **`FilePersistenceTest`**, `TaskTest`, `ProjectTest` |
+
+Names in **bold** are new files. The others existed in Lab 2 and were changed.
+
+### Changed from Lab 2
+
+| Topic | Lab 2 | Lab 3 |
+|---|---|---|
+| Storage | arrays | `HashMap<String, Project>` and `ArrayList<Task>` |
+| Searching | `for` loops | `stream()` with `filter`, `map`, `sorted`, `collect`, `reduce` |
+| IDs | created by the program (`PRJ001`, `TSK001`), `1` was accepted for `PRJ001` | typed by the user and checked with a regex: `P001`, `T001`, nothing is converted |
+| Persistence | none, the data was lost on exit | `data/projects_data.json` |
+| Concurrency | none | threads and a parallel stream |
+| Main menu | 5 options | 6 options: "Simulate Concurrent Updates" is added |
+| Errors | `❌ Error: ExceptionName – message` | `✗ Error: message` (the format of the Lab 3 sheet) |
+| Users | `RegularUser`, `AdminUser` | `RegularMember`, `AdminMember` (names of the Lab 3 structure) |
+| Tests | 30 in `test/` (3 files, `*Tests`) | 22 in `tests/` (the 4 files of the Lab 3 structure), one per requirement |
 
 More details are in [design-decisions.md](docs/design-decisions.md).
 
@@ -41,30 +67,31 @@ In IntelliJ:
 1. Open the project folder.
 2. Click **Load Maven Project** when IntelliJ asks. This adds JUnit 5.
 3. Make sure the project SDK is JDK 21.
-4. Run `Main`.
+4. Run `Main`. The working directory must be the project folder, because the data file is `data/projects_data.json`.
 
-If the box characters or ✓ / ❌ show as question marks, add `-Dstdout.encoding=UTF-8` to the VM options of the run configuration.
+If the box characters or ✓ / ✗ show as question marks, add `-Dstdout.encoding=UTF-8` to the VM options of the run configuration.
 
-From a terminal:
+From a terminal, in the project folder:
 
 ```bash
 javac -encoding UTF-8 -d out $(find src -name "*.java")
 java -Dstdout.encoding=UTF-8 -cp out Main
 ```
 
-You start as **Admin**. **Josephus Mupanda (Regular)** also exists, and five sample projects are loaded.
+You start as **Admin**. **Josephus Mupanda (Regular)** also exists. The users are not saved in the file.
 
 ## Running the tests
 
-In IntelliJ, right click the `test` folder and choose **Run 'All Tests'**. Or run `mvn test`.
+In IntelliJ, right click the `tests` folder and choose **Run 'All Tests'**. Or run `mvn test`.
 
-You should get 30 tests passing.
+You should get 22 tests passing. Each test checks one requirement of the lab sheet.
 
-| Test class | What it tests |
-|---|---|
-| `ProjectTests` | completion % (the lab's example test, no tasks, all completed, rounding), generated IDs, unique IDs, positive budget, unknown project, average completion (75% and 50% give 62.5%) |
-| `TaskTests` | adding a task, duplicate name, negative hours, status update and progress, `TaskNotFoundException`, removing a task |
-| `ValidationTests` | empty text, letters for numbers, negative numbers, menu range, task status, IDs, email and role validation |
+| Test class | Lab | What it tests |
+|---|---|---|
+| `ProjectTest` | 2, updated | completion % (Lab 2), empty project, `P###` regex (US-2.2), duplicate ID, remove a project and sorted catalog (Feature 1, `HashMap`) |
+| `TaskTest` | 2, updated | add and update a task (Feature 2), `T###` regex (US-2.1), unique ID with a `Predicate` (Workflow 2), threads, parallel stream, exact count with 200 threads (US-4.1, US-4.2) |
+| `StreamOperationsTest` | 3, new | the lab's JUnit example as written, `filter`, `map`, `reduce` (Test Scenario 8), completed projects (US-1.2) |
+| `FilePersistenceTest` | 3, new | save then load (US-3.1), project count with `Files.lines` (Feature 3), missing file, malformed file (Test Scenario 6) |
 
 ## Using the program
 
@@ -73,187 +100,221 @@ flowchart TD
     M(["Main Menu"]) --> P["1. Manage Projects"]
     M --> T["2. Manage Tasks"]
     M --> R["3. View Status Reports"]
-    M --> U["4. Switch User"]
-    M --> X(["5. Exit"])
+    M --> C["4. Simulate Concurrent Updates"]
+    M --> U["5. Switch User"]
+    M --> X(["6. Exit: save the data"])
 
     P --> P1["Browse Project Catalog"]
     P --> P2["Add New Project"]
-    P1 --> D["Open a project to add, update or remove its tasks"]
-
-    T --> T1["Add New Task"]
-    T --> T2["View Tasks by Project"]
-    T --> T3["Update Task Status"]
-    T --> T4["Remove Task"]
-    T --> T5["Calculate Project Completion"]
-
-    U --> U1["Switch to another user"]
-    U --> U2["Create a new user (admin only)"]
+    P --> P3["Remove Project"]
+    T --> T1["Add / View / Update / Remove tasks, Calculate completion"]
 ```
 
-When the program asks for an ID you can type `PRJ001` or just `1`. Where the prompt says so, `0` cancels.
+IDs must be typed exactly with the pattern: `P001` for projects, `T001` for tasks, `U001` for users (`1` or `PRJ001` are refused). Where the prompt says so, `0` cancels.
 
-A wrong value shows the error and the question is asked again:
+## Sample console output
+
+Startup (the data file is loaded):
 
 ```
-Enter project ID (or 0 to cancel): P999
-❌ Error: ProjectNotFoundException – Project ID 'P999' does not exist.
+╔════════════════════════════════════════╗
+║  JAVA PROJECT MANAGEMENT SYSTEM v3.0   ║
+╚════════════════════════════════════════╝
+
+Loading projects from file...
+✓ 5 projects loaded successfully from projects_data.json
+```
+
+Project catalog, filter 5 (Streams: projects above 70%, most completed first):
+
+```
+──────────────────────────────────────────────────────────────────
+ ID     │ PROJECT NAME         │ TYPE      │ TASKS │ COMPLETED (%)
+──────────────────────────────────────────────────────────────────
+ P005   │ Study Planner        │ Software  │ 2     │ 100%
+ P001   │ Budget Buddy         │ Software  │ 5     │ 80%
+──────────────────────────────────────────────────────────────────
+Total projects: 2
+```
+
+Adding a task with a wrong ID:
+
+```
+Enter new task ID: TX01
+✗ Error: Invalid Task ID format. Use pattern T### (e.g., T001)
 Please try again.
 
-Enter project ID (or 0 to cancel): 1
-
-✓ Project 'Budget Buddy' loaded successfully.
+Enter new task ID: T013
+Enter task name: Deploy App
+...
+✓ Task "Deploy App" added successfully.
 ```
 
-If an operation cannot continue, you go back to the menu:
+Concurrent updates (main menu option 4, then 1):
 
 ```
-Enter task ID: T999
-❌ Error: TaskNotFoundException – Task 'T999' was not found in the project.
+╔════════════════════════════════════════╗
+║    PARALLEL TASK UPDATE SIMULATION     ║
+╚════════════════════════════════════════╝
 
-Operation aborted. Returning to task menu...
+1. Threads
+2. Parallel stream
+
+Enter your choice: 1
+Starting 4 threads...
+Thread-1 updating T005 -> In Progress
+Thread-2 updating T007 -> In Progress
+Thread-3 updating T009 -> Completed
+Thread-4 updating T010 -> In Progress
+All threads finished successfully.
+
+✓ Task updates applied concurrently and safely.
 ```
 
-## Exceptions
+Exit:
 
-| Exception | When |
-|---|---|
-| `InvalidInputException` | wrong value: letters for a number, empty text, option not in the menu, unknown status, bad email or role |
-| `InvalidProjectDataException` | negative budget, empty name, project ID or name already used (it extends `InvalidInputException`) |
-| `ProjectNotFoundException` | no project with that ID |
-| `TaskNotFoundException` | no task with that ID |
-| `EmptyProjectException` | completion asked for a project with no tasks |
+```
+Goodbye.
+Saving project data...
+Data written to projects_data.json successfully!
+```
 
-Where they are caught:
+A missing or malformed file:
 
-- **Typing mistakes:** the read methods in `ConsoleMenu` (`readChoice`, `readText`...) catch `InvalidInputException`, show the error and ask again.
-- **Failed operations:** each menu loop in `ConsoleMenu` has a try-catch. It shows the error and "Operation aborted", then the menu comes back.
-- **Closing:** `Main` uses try / catch / finally. The `finally` always closes the `Scanner`.
+```
+Loading projects from file...
+✗ Error: Unable to load projects_data.json (File not found)
+→ Starting with empty catalog.
+```
 
-## Roles
+## The data file
 
-| Action | Regular | Admin |
-|---|---|---|
-| View projects, tasks and reports | yes | yes |
-| Add projects and tasks | yes | yes |
-| Update and remove tasks | no | yes |
-| Create users | no | yes |
+`data/projects_data.json` is a list of projects, each with its tasks. It has the fields of the lab example (`projectId`, `name`, `type`, `tasks` with `id`, `name`, `status`) plus the other fields of a project, so nothing is lost after a restart:
 
-`RegularUser` and `AdminUser` both answer `canModify()`, so the menu asks the user object instead of checking the role name.
+```json
+[
+  {
+    "projectId": "P001",
+    "name": "Budget Buddy",
+    "type": "Software",
+    "description": "Personal expense and savings tracker",
+    "budget": 8000.0,
+    "teamSize": 3,
+    "durationWeeks": 12,
+    "techStack": "Java",
+    "tasks": [
+      {"id": "T001", "name": "Design Database", "status": "Completed", "hours": 6, "assignedTo": null},
+      {"id": "T002", "name": "Build Expense Screen", "status": "Completed", "hours": 10, "assignedTo": "U002"}
+    ]
+  }
+]
+```
+
 
 ## Class diagram
 
 ![Class diagram](docs/class-diagram.png)
 
-## Features and user stories
+The orange borders mark the classes where Lab 3 added Streams, lambdas and threads.
 
-| Story | Where |
+## Lab requirements and where they are
+
+| Requirement | Where |
 |---|---|
-| Feature 1: project catalog, unique IDs, positive budget | `ProjectService`, `Project`, `InvalidProjectDataException` |
-| Feature 2: task operations, `TaskNotFoundException` | `TaskService`, `Task` |
-| Feature 3: `UserService`, email and role validation | `UserService`, `ValidationUtils` |
-| Feature 4: `EmptyProjectException`, average, printing utility methods | `ReportService`, `StatusReport`, `ConsoleMenu` |
-| Feature 5: input validation, error messages, stable menus | `ConsoleMenu`, `ValidationUtils` |
-| US-1.1 refactor class design | all packages, see design-decisions.md |
-| US-2.1 handle invalid inputs | `utils/exceptions`, `ValidationUtils`, `ConsoleMenu`, `Main` |
-| US-3.1 test completion calculation | `ProjectTests` |
-| US-4.1 version code changes | see Git workflow below |
-| US-5.1 handle menu errors | `ConsoleMenu` |
+| Collections (`ArrayList`, `HashMap`) with generics | `Project` (tasks), `ProjectService` (projects), `UserService` (users) |
+| Lambdas and method references | `StreamService`, `FunctionalUtils`, `ReportService`, `ConsoleMenu` |
+| Streams: `filter`, `map`, `sorted`, `collect`, `reduce` | `StreamService`, `ReportService`, `Project` |
+| Functional interface and `Predicate` | `TaskFilter`, `FunctionalUtils.validate` used by `TaskService.addTask` |
+| Regex with `Pattern` and `Matcher` | `RegexValidator` (IDs, email, numbers), `FileUtils` (reading the file) |
+| NIO file I/O and `try-with-resources` | `FileUtils`: `Files.readAllLines` (load on startup), `Files.writeString` and `Files.readString` (save, then read back to confirm), `Files.lines` in a `try-with-resources` (`countProjects`) |
+| Threads, `Runnable`, `synchronized`, parallel stream | `ConcurrencyService`, `Project`, `Task`, `ProjectService`, `TaskService` |
+| JUnit tests for streams, files and threads | `StreamOperationsTest`, `FilePersistenceTest`, `TaskTest` (threads) |
+| Exceptions | `utils/exceptions` (the five of Lab 2 and `DataFileException`) |
 
 ## Git workflow
 
-Setup:
+Each feature of the lab has its own branch, with the names asked in the submission requirements. When the tests pass, the branch is merged into `main` with `--no-ff`, so the history shows which commits came from which branch.
+
+| Branch | Commits | Lab phase |
+|---|---|---|
+| `feature/collections-fp` | collections and streams, then regex validation | Phase 1 and Phase 2 |
+| `feature/file-io` | save on exit, load on startup | Phase 3 |
+| `feature/concurrency` | threads, parallel stream, `synchronized` | Phase 4 |
+
+The regex validation is a second commit on `feature/collections-fp`, because Feature 2 of the lab joins regex and functional validation (the `Predicate` that checks a task ID is not used yet).
+
+The preparation of the build (`chore`) and the final documentation (`docs`) are committed directly on `main`.
+
+Working on a branch:
 
 ```bash
-git init -b main
-git remote add origin https://github.com/<your-username>/TaskManagementSystemLab2.git
-```
-
-Branches used:
-
-- `main`: stable code, every feature branch is merged here
-- `feature/exceptions`: the custom exceptions and `ValidationUtils`
-- `feature/user-service`: user IDs and `UserService`
-- `feature/task-validation`: project and task models and the services
-- `feature/testing`: the JUnit tests
-
-Working on a feature:
-
-```bash
-git checkout -b feature/testing
-git add test/ProjectTests.java test/TaskTests.java
-git commit -m "test: add JUnit tests for projects and tasks"
-git push -u origin feature/testing
+git checkout -b feature/file-io
+git add src tests data
+git commit -m "feat(io): keep projects between runs" -m "Without a file, everything typed was lost when the program closed."
 git checkout main
-git merge --no-ff feature/testing
-git push
+git merge --no-ff feature/file-io
+git push -u origin main feature/file-io
 ```
 
-`--no-ff` keeps a merge commit, so the history shows which commits came from which branch.
-
-Commit history (`git log --oneline --graph`):
-
-```
-* docs: update README, design decisions and class diagram
-*   Merge branch 'feature/testing'
-|\
-| * test: add validation tests
-| * test: add JUnit tests for projects and tasks
-|/
-* refactor(menu): add input retry and try-catch to ConsoleMenu
-*   Merge branch 'feature/task-validation'
-|\
-| * refactor(services): throw custom exceptions from the services
-| * refactor(models): validate projects and tasks with custom exceptions
-|/
-*   Merge branch 'feature/user-service'
-|\
-| * refactor(users): move user management into UserService
-| * refactor(users): give users text IDs
-|/
-*   Merge branch 'feature/exceptions'
-|\
-| * refactor(validation): keep validation rules in ValidationUtils
-| * feat(exceptions): add custom exceptions
-|/
-* chore: add Maven build with JUnit 5 and update ignore rules
-```
+Commit messages follow `type(scope): summary` (`feat`, `refactor`, `test`, `docs`, `chore`). The summary and the body say **why** the change was made; the diff already shows what changed.
 
 ## Project structure
 
+`(new)` marks the files added in Lab 3. The other files come from Lab 2.
+
 ```
 src/
-  Main.java
+  Main.java                       load on startup, save on exit
   models/
-    Project.java
+    Project.java                  tasks in an ArrayList
     SoftwareProject.java
     HardwareProject.java
     Task.java
     User.java
-    RegularUser.java
-    AdminUser.java
+    RegularMember.java            renamed from RegularUser
+    AdminMember.java              renamed from AdminUser
     StatusReport.java
   interfaces/
     Completable.java
+    TaskFilter.java               (new) functional interface
   services/
-    ProjectService.java
+    ProjectService.java           projects in a HashMap
     TaskService.java
     ReportService.java
     UserService.java
+    StreamService.java            (new) stream queries
+    ConcurrencyService.java       (new) threads and parallel stream
   utils/
     ConsoleMenu.java
     ValidationUtils.java
+    FileUtils.java                (new) save and load the JSON file
+    RegexValidator.java           (new) Pattern and Matcher rules
+    FunctionalUtils.java          (new) helpers built on lambdas
     exceptions/
       InvalidInputException.java
       InvalidProjectDataException.java
       ProjectNotFoundException.java
       TaskNotFoundException.java
       EmptyProjectException.java
-test/
-  ProjectTests.java
-  TaskTests.java
-  ValidationTests.java
+      DataFileException.java      (new) file errors
+tests/
+  ProjectTest.java
+  TaskTest.java
+  StreamOperationsTest.java       (new)
+  FilePersistenceTest.java        (new)
+data/
+  projects_data.json              (new)
 docs/
   class-diagram.png
   design-decisions.md
 README.md
 ```
+
+`UserService` comes from Lab 2 and is not in the Lab 3 structure, so it was kept. The tests follow the 4 files of the Lab 3 structure: the threading tests are in `TaskTest` because the threads update tasks.
+
+## Known limits
+
+- Users are not saved. A task assigned to a user created during a session loses its assignee on the next start.
+- Task IDs go from `T000` to `T999` and project IDs from `P000` to `P999`, because of the required pattern.
+- A `"` inside a name is saved as `'`, because the file uses `"` around texts.
+- If the file cannot be loaded, the program starts empty and the file is replaced by the new catalog on exit.
