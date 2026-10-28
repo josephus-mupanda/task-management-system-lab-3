@@ -3,6 +3,7 @@ package services;
 import models.AdminMember;
 import models.RegularMember;
 import models.User;
+import utils.RegexValidator;
 import utils.ValidationUtils;
 import utils.exceptions.InvalidInputException;
 
@@ -37,9 +38,9 @@ public class UserService {
         return users.stream().anyMatch(user -> user.getEmail().equalsIgnoreCase(email.trim()));
     }
 
-    /** Finds a user by id, returns null if there is none. */
+    /** Finds a user by id (U001), throws InvalidInputException if the format is wrong, returns null if there is none. */
     public User findUser(String input) {
-        String id = ValidationUtils.requireText(input, "User ID");
+        String id = RegexValidator.requireUserId(input);
         return users.stream()
                 .filter(user -> user.getId().equals(id))
                 .findFirst()

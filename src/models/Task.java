@@ -1,6 +1,7 @@
 package models;
 
 import interfaces.Completable;
+import utils.RegexValidator;
 import utils.ValidationUtils;
 import utils.exceptions.InvalidInputException;
 
@@ -40,9 +41,9 @@ public class Task implements Completable {
     private Status status;
     private User assignedTo;
 
-    /** Creates a task, throws InvalidInputException if the id or the name is empty or the hours are not positive. */
+    /** Creates a task, throws InvalidInputException if the id is not like T001, the name is empty or the hours are not positive. */
     public Task(String id, String name, Status status, int hours) {
-        this.id = ValidationUtils.requireText(id, "Task ID");
+        this.id = RegexValidator.requireTaskId(id);
         this.name = ValidationUtils.requireText(name, "Task name");
         this.status = status;
         this.hours = ValidationUtils.requirePositive(hours, "Hours");

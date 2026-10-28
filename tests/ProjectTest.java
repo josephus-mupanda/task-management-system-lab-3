@@ -41,7 +41,15 @@ class ProjectTest {
         assertThrows(EmptyProjectException.class, () -> p.calculateCompletionPercentage());
     }
 
-    // Feature 1: projects in a HashMap, added and removed without size limits; the ID is the key, so it must be unique
+    // US-2.2: project IDs must match P\d{3}
+
+    @Test
+    void testProjectIdMustMatchPattern() {
+        InvalidProjectDataException error = assertThrows(InvalidProjectDataException.class,
+                () -> projectService.createSoftwareProject("PRJ001", "Alpha Tracker", "", 15000, 5, 6, "Java"));
+
+        assertEquals("Invalid Project ID format. Use pattern P### (e.g., P001)", error.getMessage());
+    }
 
     @Test
     void testDuplicateProjectIdIsRejected() {
@@ -50,6 +58,8 @@ class ProjectTest {
         assertThrows(InvalidProjectDataException.class,
                 () -> projectService.createSoftwareProject("P001", "Another Project", "", 3000, 2, 4, "Java"));
     }
+
+    // Feature 1: projects in a HashMap, added and removed without size limits
 
     @Test
     void testRemoveProject() {

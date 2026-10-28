@@ -15,20 +15,23 @@ public class ValidationUtils {
 
     /** Turns the text into a whole number, throws InvalidInputException if it is not one. */
     public static int parseInt(String text, String fieldName) {
+        if (text == null || !RegexValidator.matches(RegexValidator.WHOLE_NUMBER, text.trim())) {
+            throw new InvalidInputException(fieldName + " must be a whole number.");
+        }
         try {
             return Integer.parseInt(text.trim());
         } catch (NumberFormatException e) {
+            // matches the pattern but does not fit in an int
             throw new InvalidInputException(fieldName + " must be a whole number.");
         }
     }
 
     /** Turns the text into a decimal number, throws InvalidInputException if it is not one. */
     public static double parseDouble(String text, String fieldName) {
-        try {
-            return Double.parseDouble(text.trim());
-        } catch (NumberFormatException e) {
+        if (text == null || !RegexValidator.matches(RegexValidator.DECIMAL_NUMBER, text.trim())) {
             throw new InvalidInputException(fieldName + " must be a number.");
         }
+        return Double.parseDouble(text.trim());
     }
 
     /** Checks that the number is greater than 0. */
@@ -58,8 +61,8 @@ public class ValidationUtils {
     /** Checks that the email looks like name@example.com. */
     public static String requireValidEmail(String email) {
         String value = requireText(email, "Email");
-        if (!value.contains("@") || value.indexOf('@') > value.lastIndexOf('.') || value.contains(" ")) {
-            throw new InvalidInputException("'" + value + "' is not a valid email address.");
+        if (!RegexValidator.isEmail(value)) {
+            throw new InvalidInputException("Invalid email format. Use name@example.com (e.g., josephus@gmail.com)");
         }
         return value;
     }

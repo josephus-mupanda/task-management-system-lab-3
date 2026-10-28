@@ -4,7 +4,7 @@ import models.HardwareProject;
 import models.Project;
 import models.SoftwareProject;
 import utils.FunctionalUtils;
-import utils.ValidationUtils;
+import utils.RegexValidator;
 import utils.exceptions.InvalidProjectDataException;
 import utils.exceptions.ProjectNotFoundException;
 
@@ -18,7 +18,7 @@ public class ProjectService {
 
     private final Map<String, Project> projects = new HashMap<>();
 
-    /** Creates a software project and saves it, throws InvalidProjectDataException if a value is not valid. */
+    /** Creates a software project and saves it, throws InvalidProjectDataException if the id is not like P001 or a value is not valid. */
     public Project createSoftwareProject(String id, String name, String description, double budget,
                                          int teamSize, int durationWeeks, String techStack) {
         Project project = new SoftwareProject(id, name, description, budget, teamSize, durationWeeks, techStack);
@@ -26,7 +26,7 @@ public class ProjectService {
         return project;
     }
 
-    /** Creates a hardware project and saves it, throws InvalidProjectDataException if a value is not valid. */
+    /** Creates a hardware project and saves it, throws InvalidProjectDataException if the id is not like P001 or a value is not valid. */
     public Project createHardwareProject(String id, String name, String description, double budget,
                                          int teamSize, int durationWeeks, String deviceType) {
         Project project = new HardwareProject(id, name, description, budget, teamSize, durationWeeks, deviceType);
@@ -57,9 +57,9 @@ public class ProjectService {
         return projects.values().stream().anyMatch(project -> project.getName().equalsIgnoreCase(name.trim()));
     }
 
-    /** Finds a project by its id, throws ProjectNotFoundException if there is none. */
+    /** Finds a project by its id (P001), throws InvalidInputException if the format is wrong and ProjectNotFoundException if there is none. */
     public Project findProject(String input) {
-        Project project = projects.get(ValidationUtils.requireText(input, "Project ID"));
+        Project project = projects.get(RegexValidator.requireProjectId(input));
         if (project == null) {
             throw new ProjectNotFoundException(input.trim());
         }

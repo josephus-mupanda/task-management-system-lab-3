@@ -1,6 +1,7 @@
 package models;
 
 import interfaces.TaskFilter;
+import utils.RegexValidator;
 import utils.exceptions.EmptyProjectException;
 import utils.exceptions.InvalidProjectDataException;
 import utils.exceptions.TaskNotFoundException;
@@ -21,8 +22,8 @@ public abstract class Project {
 
     /** Creates a project, throws InvalidProjectDataException if a value is not valid. */
     public Project(String id, String name, String description, double budget, int teamSize, int durationWeeks) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new InvalidProjectDataException("Project ID cannot be empty.");
+        if (!RegexValidator.isProjectId(id)) {
+            throw new InvalidProjectDataException(RegexValidator.PROJECT_ID_MESSAGE);
         }
         if (name == null || name.trim().isEmpty()) {
             throw new InvalidProjectDataException("Project name cannot be empty.");
@@ -36,7 +37,7 @@ public abstract class Project {
         if (durationWeeks <= 0) {
             throw new InvalidProjectDataException("Duration must be greater than 0.");
         }
-        this.id = id.trim();
+        this.id = id;
         this.name = name.trim();
         this.description = description == null ? "" : description.trim();
         this.budget = budget;

@@ -42,7 +42,15 @@ class TaskTest {
         assertEquals(50.0, alpha.calculateCompletionPercentage());
     }
 
-    // Workflow 2: a Predicate checks that the ID is not used yet
+    // US-2.1 and Workflow 2: the regex checks the format, then a Predicate checks that the ID is not used yet
+
+    @Test
+    void testTaskIdMustMatchPattern() {
+        InvalidInputException error = assertThrows(InvalidInputException.class,
+                () -> taskService.addTask(alpha, "TX01", "Write Unit Tests", Task.Status.PENDING, 2, null));
+
+        assertEquals("Invalid Task ID format. Use pattern T### (e.g., T001)", error.getMessage());
+    }
 
     @Test
     void testTaskIdMustBeUnique() {

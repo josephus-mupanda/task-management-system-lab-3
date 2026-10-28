@@ -195,7 +195,7 @@ public class ConsoleMenu {
         while (true) {
             System.out.print(prompt);
             try {
-                String id = ValidationUtils.requireText(scanner.nextLine(), "Project ID");
+                String id = RegexValidator.requireProjectId(scanner.nextLine().trim());
                 if (projectService.idExists(id)) {
                     throw new InvalidInputException("Project ID '" + id + "' already exists.");
                 }
@@ -211,7 +211,7 @@ public class ConsoleMenu {
         while (true) {
             System.out.print(prompt);
             try {
-                String id = ValidationUtils.requireText(scanner.nextLine(), "Task ID");
+                String id = RegexValidator.requireTaskId(scanner.nextLine().trim());
                 if (!taskService.isIdAvailable(id)) {
                     throw new InvalidInputException("Task ID '" + id + "' already exists.");
                 }
