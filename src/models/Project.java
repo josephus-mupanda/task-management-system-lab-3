@@ -1,12 +1,15 @@
 package models;
 
+import interfaces.TaskFilter;
+import utils.RegexValidator;
 import utils.exceptions.EmptyProjectException;
 import utils.exceptions.InvalidProjectDataException;
 import utils.exceptions.TaskNotFoundException;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
-// what every project has, SoftwareProject and HardwareProject add their own detail
+// abstract so each kind of project gives its own type and details, the code that prints projects does not change.
 public abstract class Project {
 
     private final String id;
@@ -15,13 +18,12 @@ public abstract class Project {
     private final double budget;
     private final int teamSize;
     private final int durationWeeks;
-    private Task[] tasks = new Task[10];
-    private int taskCount;
+    private final List<Task> tasks = new ArrayList<>();
 
     /** Creates a project, throws InvalidProjectDataException if a value is not valid. */
     public Project(String id, String name, String description, double budget, int teamSize, int durationWeeks) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new InvalidProjectDataException("Project ID cannot be empty.");
+        if (!RegexValidator.isProjectId(id)) {
+            throw new InvalidProjectDataException(RegexValidator.PROJECT_ID_MESSAGE);
         }
         if (name == null || name.trim().isEmpty()) {
             throw new InvalidProjectDataException("Project name cannot be empty.");
@@ -35,7 +37,7 @@ public abstract class Project {
         if (durationWeeks <= 0) {
             throw new InvalidProjectDataException("Duration must be greater than 0.");
         }
-        this.id = id.trim();
+        this.id = id;
         this.name = name.trim();
         this.description = description == null ? "" : description.trim();
         this.budget = budget;
@@ -49,101 +51,78 @@ public abstract class Project {
     /** Returns the line that depends on the type, ex: Tech Stack: Java. */
     public abstract String getProjectDetails();
 
-    /** Adds a task, the array doubles in size when it is full. */
+    /** Adds a task to the project. */
     public void addTask(Task task) {
-        if (taskCount == tasks.length) {
-            tasks = Arrays.copyOf(tasks, tasks.length * 2);
-        }
-        tasks[taskCount++] = task;
+        tasks.add(task);
     }
 
     /** Returns the task with this id, throws TaskNotFoundException if it is not in this project. */
     public Task findTask(String taskId) {
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].getId().equals(taskId)) {
-                return tasks[i];
-            }
-        }
-        throw new TaskNotFoundException(taskId);
+        return tasks.stream()
+                .filter(task -> task.getId().equals(taskId))
+                .findFirst()
+                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
     /** Returns true if the task is in this project. */
     public boolean hasTask(String taskId) {
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].getId().equals(taskId)) {
-                return true;
-            }
-        }
-        return false;
+        return tasks.stream().anyMatch(task -> task.getId().equals(taskId));
     }
 
-    /** Removes the task and moves the next tasks one place to the left, throws TaskNotFoundException if it is not here. */
+    /** Removes the task, throws TaskNotFoundException if it is not here. */
     public void removeTask(String taskId) {
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].getId().equals(taskId)) {
-                for (int j = i; j < taskCount - 1; j++) {
-                    tasks[j] = tasks[j + 1];
-                }
-                tasks[--taskCount] = null;
-                return;
-            }
+        if (!tasks.removeIf(task -> task.getId().equals(taskId))) {
+            throw new TaskNotFoundException(taskId);
         }
-        throw new TaskNotFoundException(taskId);
     }
 
     /** Returns true if a task in this project already has this name (ignoring case). */
     public boolean hasTaskNamed(String taskName) {
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].getName().equalsIgnoreCase(taskName.trim())) {
-                return true;
-            }
-        }
-        return false;
+        return tasks.stream().anyMatch(task -> task.getName().equalsIgnoreCase(taskName.trim()));
     }
 
-    /** Returns a copy of the tasks so the array inside the project cannot be changed from outside. */
-    public Task[] getTasks() {
-        return Arrays.copyOf(tasks, taskCount);
+    /** Returns a copy of the tasks so the list inside the project cannot be changed from outside. */
+    public List<Task> getTasks() {
+        return List.copyOf(tasks);
+    }
+
+    /** Returns the tasks that pass the filter. */
+    public List<Task> getTasks(TaskFilter filter) {
+        return tasks.stream().filter(filter::matches).toList();
     }
 
     /** Returns the number of tasks. */
     public int getTaskCount() {
-        return taskCount;
+        return tasks.size();
     }
 
     /** Returns true if the project has at least one task. */
     public boolean hasTasks() {
-        return taskCount > 0;
+        return !tasks.isEmpty();
     }
 
     /** Counts the tasks that have this status. */
     public int countByStatus(Task.Status status) {
-        int count = 0;
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].getStatus() == status) {
-                count++;
-            }
-        }
-        return count;
+        return getTasks(TaskFilter.byStatus(status)).size();
     }
 
     /** Returns the % of completed tasks rounded to 2 decimals, throws EmptyProjectException when there are no tasks. */
     public double calculateCompletionPercentage() {
-        if (taskCount == 0) {
+        if (tasks.isEmpty()) {
             throw new EmptyProjectException(
                     "Project '" + name + "' has no tasks, so its completion cannot be calculated.");
         }
-        int completed = 0;
-        for (int i = 0; i < taskCount; i++) {
-            if (tasks[i].isCompleted()) {
-                completed++;
-            }
-        }
-        double percentage = (double) completed / taskCount * 100;
+        long completed = tasks.stream().filter(Task::isCompleted).count();
+        double percentage = (double) completed / tasks.size() * 100;
         return Math.round(percentage * 100.0) / 100.0;
     }
 
-    /** Returns the id, ex: PRJ001. */
+    /** Same as calculateCompletionPercentage() but a project without tasks gives 0, so streams can sort and filter on it. */
+    public double getCompletionRate() {
+        return tasks.isEmpty() ? 0 : calculateCompletionPercentage();
+    }
+
+    /** Returns the id, ex: P001. */
     public String getId() {
         return id;
     }

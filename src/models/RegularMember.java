@@ -1,9 +1,9 @@
 package models;
 
-public class RegularUser extends User {
+public class RegularMember extends User {
 
     /** Creates a regular user. */
-    public RegularUser(String id, String name, String email) {
+    public RegularMember(String id, String name, String email) {
         super(id, name, email, "Regular");
     }
 
