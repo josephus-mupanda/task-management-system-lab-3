@@ -54,7 +54,7 @@ Names in **bold** are new files. The others existed in Lab 2 and were changed.
 | Main menu | 5 options | 6 options: "Simulate Concurrent Updates" is added |
 | Errors | `❌ Error: ExceptionName – message` | `✗ Error: message` (the format of the Lab 3 sheet) |
 | Users | `RegularUser`, `AdminUser` | `RegularMember`, `AdminMember` (names of the Lab 3 structure) |
-| Tests | 30 in `test/` (3 files, `*Tests`) | 22 in `tests/` (the 4 files of the Lab 3 structure), one per requirement |
+| Tests | 30 in `test/` (3 files, `*Tests`) | 23 in `tests/` (the 4 files of the Lab 3 structure), one per requirement |
 
 More details are in [design-decisions.md](docs/design-decisions.md).
 
@@ -84,7 +84,7 @@ You start as **Admin**. **Josephus Mupanda (Regular)** also exists. The users ar
 
 In IntelliJ, right click the `tests` folder and choose **Run 'All Tests'**. Or run `mvn test`.
 
-You should get 22 tests passing. Each test checks one requirement of the lab sheet.
+You should get 23 tests passing. Each test checks one requirement of the lab sheet.
 
 | Test class | Lab | What it tests |
 |---|---|---|

@@ -56,6 +56,17 @@ class FilePersistenceTest {
         assertEquals("Hardware", loaded.get(1).getType());
     }
 
+    // a budget of 10 million was saved as 1.0E7, the next start could not read it and the projects were lost
+    @Test
+    void testBigBudgetIsLoadedBack() {
+        projectService.createSoftwareProject("P001", "Alpha Tracker", "", 10000000, 5, 6, "Java");
+
+        FileUtils.saveProjects(projectService.getProjects(), file);
+        List<Project> loaded = FileUtils.loadProjects(file, users);
+
+        assertEquals(10000000, loaded.get(0).getBudget());
+    }
+
     // Feature 3: functional reading with Files.lines(), used to confirm the write
 
     @Test

@@ -9,6 +9,7 @@ import utils.exceptions.DataFileException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,7 +89,7 @@ public class FileUtils {
                 + "    \"name\": " + quote(project.getName()) + ",\n"
                 + "    \"type\": " + quote(project.getType()) + ",\n"
                 + "    \"description\": " + quote(project.getDescription()) + ",\n"
-                + "    \"budget\": " + project.getBudget() + ",\n"
+                + "    \"budget\": " + plainNumber(project.getBudget()) + ",\n"
                 + "    \"teamSize\": " + project.getTeamSize() + ",\n"
                 + "    \"durationWeeks\": " + project.getDurationWeeks() + ",\n"
                 + "    " + detail + ",\n"
@@ -103,6 +104,11 @@ public class FileUtils {
                 + ", \"status\": " + quote(task.getStatus())
                 + ", \"hours\": " + task.getHours()
                 + ", \"assignedTo\": " + assignee + "}";
+    }
+
+    // a double of 10 million or more becomes "1.0E7" as text, which the loader refuses, so the budget is written with all its digits
+    private static String plainNumber(double value) {
+        return BigDecimal.valueOf(value).toPlainString();
     }
 
     // the file uses " around texts, so a " inside a name is saved as '

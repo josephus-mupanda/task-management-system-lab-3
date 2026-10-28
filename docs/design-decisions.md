@@ -72,7 +72,7 @@ flowchart TD
 ## Tests
 
 - `tests/` has only the 4 files of the lab structure, with the `*Test` names. `pom.xml` points Maven to `src/` and `tests/`.
-- There is one test per requirement of the sheet (22 in total), each with a comment naming the requirement it checks. Variants of the same check (zero and negative budget, several wrong IDs) were removed: one test per rule is enough to prove it.
+- There is one test per requirement of the sheet (23 in total), each with a comment naming the requirement it checks. Variants of the same check (zero and negative budget, several wrong IDs) were removed: one test per rule is enough to prove it.
 - The threading tests are in `TaskTest`, because the threads update tasks. The regex tests are in `TaskTest` (task IDs) and `ProjectTest` (project IDs).
 - File tests use JUnit's `@TempDir`, so they never change `data/projects_data.json`.
 - The lab's test example is used exactly as written: `t.getStatus().equals("Completed")`. That is why `getStatus()` returns the status as text, and `getStatusType()` returns the `Task.Status` value for the code that needs the next status or compares statuses.
