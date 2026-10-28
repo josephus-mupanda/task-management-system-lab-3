@@ -6,8 +6,8 @@
 
     <groupId>com.amalitech.labs</groupId>
     <artifactId>task-management-system</artifactId>
-    <version>2.0.0</version>
-    <name>Task Management System - Lab 2</name>
+    <version>3.0.0</version>
+    <name>Task Management System - Lab 3</name>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
@@ -25,9 +25,9 @@
     </dependencies>
 
     <build>
-        <!-- code is in src/ and tests in test/ like the lab structure -->
+        <!-- code is in src/ and tests in tests/ like the lab structure -->
         <sourceDirectory>src</sourceDirectory>
-        <testSourceDirectory>test</testSourceDirectory>
+        <testSourceDirectory>tests</testSourceDirectory>
 
         <plugins>
             <plugin>
@@ -41,7 +41,7 @@
                 <version>3.5.2</version>
                 <configuration>
                     <includes>
-                        <include>**/*Tests.java</include>
+                        <include>**/*Test.java</include>
                     </includes>
                 </configuration>
             </plugin>

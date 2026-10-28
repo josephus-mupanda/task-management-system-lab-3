@@ -1,4 +1,8 @@
-### IntelliJ IDEA ###
+### IntelliJ IDEA / JetBrains ###
+.idea/
+*.iml
+*.ipr
+*.iws
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
@@ -25,13 +29,10 @@ bin/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
+### Mac OS / Windows ###
 .DS_Store
+Thumbs.db
 
 ### Build output ###
 target/
 *.class
-
-### IntelliJ user specific files ###
-.idea/workspace.xml
-.idea/shelf/

@@ -8,7 +8,7 @@ import utils.exceptions.InvalidInputException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class ValidationTests {
+class ValidationTest {
 
     private UserService userService;
 

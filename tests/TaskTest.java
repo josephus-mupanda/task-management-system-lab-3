@@ -10,7 +10,7 @@ import utils.exceptions.TaskNotFoundException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class TaskTests {
+class TaskTest {
 
     private ProjectService projectService;
     private TaskService taskService;

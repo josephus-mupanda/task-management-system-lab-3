@@ -15,7 +15,7 @@ import utils.exceptions.ProjectNotFoundException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class ProjectTests {
+class ProjectTest {
 
     private ProjectService projectService;
     private TaskService taskService;
