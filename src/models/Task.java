@@ -28,6 +28,11 @@ public class Task implements Completable {
             throw new InvalidInputException("Invalid status. Please choose from [Pending, In Progress, Completed].");
         }
 
+        /** Returns the next step of the work: Pending, then In Progress, then Completed (which stays Completed). */
+        public Status next() {
+            return this == PENDING ? IN_PROGRESS : COMPLETED;
+        }
+
         /** Returns the label shown to the user. */
         @Override
         public String toString() {
@@ -76,27 +81,27 @@ public class Task implements Completable {
     }
 
     /** Returns the status as text, ex: "Completed", so it can be compared with getStatus().equals("Completed"). */
-    public String getStatus() {
+    public synchronized String getStatus() {
         return status.toString();
     }
 
     /** Returns the status as a Task.Status value, used when the code needs the next status or compares statuses. */
-    public Status getStatusType() {
+    public synchronized Status getStatusType() {
         return status;
     }
 
     /** Changes the status. */
-    public void setStatus(Status status) {
+    public synchronized void setStatus(Status status) {
         this.status = status;
     }
 
     /** Returns the assigned user, or null if nobody is assigned. */
-    public User getAssignedTo() {
+    public synchronized User getAssignedTo() {
         return assignedTo;
     }
 
     /** Assigns the task to a user, null means nobody. */
-    public void setAssignedTo(User assignedTo) {
+    public synchronized void setAssignedTo(User assignedTo) {
         this.assignedTo = assignedTo;
     }
 }

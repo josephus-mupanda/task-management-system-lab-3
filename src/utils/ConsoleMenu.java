@@ -1,10 +1,12 @@
 package utils;
 
+import interfaces.TaskFilter;
 import models.Project;
 import models.StatusReport;
 import models.Task;
 import models.User;
 import services.ProjectService;
+import services.ConcurrencyService;
 import services.ReportService;
 import services.StreamService;
 import services.TaskService;
@@ -33,18 +35,21 @@ public class ConsoleMenu {
     private final TaskService taskService;
     private final ReportService reportService;
     private final StreamService streamService;
+    private final ConcurrencyService concurrencyService;
     private final UserService userService;
     private User currentUser;
 
     /** Creates the menu, the first user of the user service is logged in. */
     public ConsoleMenu(Scanner scanner, ProjectService projectService, TaskService taskService,
                        ReportService reportService, StreamService streamService,
+                       ConcurrencyService concurrencyService,
                        UserService userService) {
         this.scanner = scanner;
         this.projectService = projectService;
         this.taskService = taskService;
         this.reportService = reportService;
         this.streamService = streamService;
+        this.concurrencyService = concurrencyService;
         this.userService = userService;
         this.currentUser = userService.getUsers().get(0);
     }
@@ -284,7 +289,7 @@ public class ConsoleMenu {
 
         do {
             displayMainMenu();
-            choice = readChoice("Enter your choice: ", 1, 5);
+            choice = readChoice("Enter your choice: ", 1, 6);
 
             try {
                 switch (choice) {
@@ -298,6 +303,9 @@ public class ConsoleMenu {
                         showStatusReport();
                         break;
                     case 4:
+                        simulateConcurrentUpdates();
+                        break;
+                    case 5:
                         switchUserMenu();
                         break;
                     default:
@@ -306,7 +314,7 @@ public class ConsoleMenu {
             } catch (InvalidInputException | ProjectNotFoundException | TaskNotFoundException | EmptyProjectException e) {
                 showAbort(e, "main menu");
             }
-        } while (choice != 5);
+        } while (choice != 6);
     }
 
     private void displayMainMenu() {
@@ -318,8 +326,9 @@ public class ConsoleMenu {
         System.out.println("1. Manage Projects");
         System.out.println("2. Manage Tasks");
         System.out.println("3. View Status Reports");
-        System.out.println("4. Switch User");
-        System.out.println("5. Exit");
+        System.out.println("4. Simulate Concurrent Updates");
+        System.out.println("5. Switch User");
+        System.out.println("6. Exit");
         System.out.println();
     }
 
@@ -653,6 +662,47 @@ public class ConsoleMenu {
             return scope;
         }
         return taskService.findProjectOfTask(taskId);
+    }
+
+    // ---------- concurrent updates ----------
+
+    // completed tasks are left out because they have no next status
+    private void simulateConcurrentUpdates() {
+        if (!requireModifyAccess("update tasks")) {
+            return;
+        }
+
+        printHeader("PARALLEL TASK UPDATE SIMULATION");
+
+        // a lambda is enough for a one-line rule, no class is needed
+        TaskFilter notCompleted = task -> !task.isCompleted();
+        List<Task> tasks = streamService.filterTasks(notCompleted);
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks to update: all the tasks are already completed.");
+            return;
+        }
+
+        System.out.println("1. Threads");
+        System.out.println("2. Parallel stream");
+        System.out.println();
+        int method = readChoice("Enter your choice: ", 1, 2);
+
+        if (method == 1) {
+            System.out.println("Starting " + tasks.size() + " threads...");
+            try {
+                concurrencyService.updateWithThreads(tasks);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("✗ Error: The updates were interrupted.");
+                return;
+            }
+            System.out.println("All threads finished successfully.");
+        } else {
+            System.out.println("Starting parallel stream...");
+            concurrencyService.updateWithParallelStream(tasks);
+            System.out.println("Parallel stream finished successfully.");
+        }
+        printSuccess("Task updates applied concurrently and safely.");
     }
 
     // ---------- users ----------

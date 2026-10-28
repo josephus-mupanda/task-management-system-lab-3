@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // abstract so each kind of project gives its own type and details, the code that prints projects does not change.
+// The methods that use the task list are synchronized, because an ArrayList is not safe when threads change it together.
 public abstract class Project {
 
     private final String id;
@@ -52,12 +53,12 @@ public abstract class Project {
     public abstract String getProjectDetails();
 
     /** Adds a task to the project. */
-    public void addTask(Task task) {
+    public synchronized void addTask(Task task) {
         tasks.add(task);
     }
 
     /** Returns the task with this id, throws TaskNotFoundException if it is not in this project. */
-    public Task findTask(String taskId) {
+    public synchronized Task findTask(String taskId) {
         return tasks.stream()
                 .filter(task -> task.getId().equals(taskId))
                 .findFirst()
@@ -65,49 +66,49 @@ public abstract class Project {
     }
 
     /** Returns true if the task is in this project. */
-    public boolean hasTask(String taskId) {
+    public synchronized boolean hasTask(String taskId) {
         return tasks.stream().anyMatch(task -> task.getId().equals(taskId));
     }
 
     /** Removes the task, throws TaskNotFoundException if it is not here. */
-    public void removeTask(String taskId) {
+    public synchronized void removeTask(String taskId) {
         if (!tasks.removeIf(task -> task.getId().equals(taskId))) {
             throw new TaskNotFoundException(taskId);
         }
     }
 
     /** Returns true if a task in this project already has this name (ignoring case). */
-    public boolean hasTaskNamed(String taskName) {
+    public synchronized boolean hasTaskNamed(String taskName) {
         return tasks.stream().anyMatch(task -> task.getName().equalsIgnoreCase(taskName.trim()));
     }
 
     /** Returns a copy of the tasks so the list inside the project cannot be changed from outside. */
-    public List<Task> getTasks() {
+    public synchronized List<Task> getTasks() {
         return List.copyOf(tasks);
     }
 
     /** Returns the tasks that pass the filter. */
-    public List<Task> getTasks(TaskFilter filter) {
+    public synchronized List<Task> getTasks(TaskFilter filter) {
         return tasks.stream().filter(filter::matches).toList();
     }
 
     /** Returns the number of tasks. */
-    public int getTaskCount() {
+    public synchronized int getTaskCount() {
         return tasks.size();
     }
 
     /** Returns true if the project has at least one task. */
-    public boolean hasTasks() {
+    public synchronized boolean hasTasks() {
         return !tasks.isEmpty();
     }
 
     /** Counts the tasks that have this status. */
-    public int countByStatus(Task.Status status) {
+    public synchronized int countByStatus(Task.Status status) {
         return getTasks(TaskFilter.byStatus(status)).size();
     }
 
     /** Returns the % of completed tasks rounded to 2 decimals, throws EmptyProjectException when there are no tasks. */
-    public double calculateCompletionPercentage() {
+    public synchronized double calculateCompletionPercentage() {
         if (tasks.isEmpty()) {
             throw new EmptyProjectException(
                     "Project '" + name + "' has no tasks, so its completion cannot be calculated.");
@@ -118,7 +119,7 @@ public abstract class Project {
     }
 
     /** Same as calculateCompletionPercentage() but a project without tasks gives 0, so streams can sort and filter on it. */
-    public double getCompletionRate() {
+    public synchronized double getCompletionRate() {
         return tasks.isEmpty() ? 0 : calculateCompletionPercentage();
     }
 
