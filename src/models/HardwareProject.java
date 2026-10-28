@@ -11,6 +11,11 @@ public class HardwareProject extends Project {
         this.deviceType = deviceType;
     }
 
+    /** Returns the device type. */
+    public String getDeviceType() {
+        return deviceType;
+    }
+
     /** Returns "Hardware". */
     @Override
     public String getType() {

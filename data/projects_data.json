@@ -1,0 +1,75 @@
+[
+  {
+    "projectId": "P001",
+    "name": "Budget Buddy",
+    "type": "Software",
+    "description": "Personal expense and savings tracker",
+    "budget": 8000.0,
+    "teamSize": 3,
+    "durationWeeks": 12,
+    "techStack": "Java",
+    "tasks": [
+      {"id": "T001", "name": "Design Database", "status": "Completed", "hours": 6, "assignedTo": null},
+      {"id": "T002", "name": "Build Expense Screen", "status": "Completed", "hours": 10, "assignedTo": "U002"},
+      {"id": "T003", "name": "Add Savings Goals", "status": "Completed", "hours": 8, "assignedTo": null},
+      {"id": "T004", "name": "Write Unit Tests", "status": "Completed", "hours": 5, "assignedTo": "U001"},
+      {"id": "T005", "name": "Publish Release", "status": "Pending", "hours": 3, "assignedTo": null}
+    ]
+  },
+  {
+    "projectId": "P002",
+    "name": "Smart Garden Monitor",
+    "type": "Hardware",
+    "description": "Soil moisture sensor that waters my plants",
+    "budget": 5000.0,
+    "teamSize": 2,
+    "durationWeeks": 8,
+    "deviceType": "Arduino sensor board",
+    "tasks": [
+      {"id": "T006", "name": "Wire Moisture Sensor", "status": "Completed", "hours": 4, "assignedTo": null},
+      {"id": "T007", "name": "Calibrate Water Pump", "status": "Pending", "hours": 3, "assignedTo": null}
+    ]
+  },
+  {
+    "projectId": "P003",
+    "name": "Portfolio Website",
+    "type": "Software",
+    "description": "My personal website to show my projects",
+    "budget": 3000.0,
+    "teamSize": 1,
+    "durationWeeks": 6,
+    "techStack": "HTML, CSS and JavaScript",
+    "tasks": [
+      {"id": "T008", "name": "Design Layout", "status": "Completed", "hours": 4, "assignedTo": null},
+      {"id": "T009", "name": "Write About Page", "status": "In Progress", "hours": 2, "assignedTo": "U002"},
+      {"id": "T010", "name": "Deploy Site", "status": "Pending", "hours": 1, "assignedTo": null}
+    ]
+  },
+  {
+    "projectId": "P004",
+    "name": "Home Power Meter",
+    "type": "Hardware",
+    "description": "Device that tracks electricity use at home",
+    "budget": 12000.0,
+    "teamSize": 3,
+    "durationWeeks": 10,
+    "deviceType": "Energy meter module",
+    "tasks": [
+
+    ]
+  },
+  {
+    "projectId": "P005",
+    "name": "Study Planner",
+    "type": "Software",
+    "description": "Timetable and revision planner for my courses",
+    "budget": 4500.0,
+    "teamSize": 2,
+    "durationWeeks": 8,
+    "techStack": "Java",
+    "tasks": [
+      {"id": "T011", "name": "Build Timetable", "status": "Completed", "hours": 5, "assignedTo": null},
+      {"id": "T012", "name": "Add Revision Reminders", "status": "Completed", "hours": 3, "assignedTo": "U001"}
+    ]
+  }
+]
