@@ -16,6 +16,11 @@ public class SoftwareProject extends Project {
         this(id, name, "", budget, teamSize, 1, "Not specified");
     }
 
+    /** Returns the tech stack. */
+    public String getTechStack() {
+        return techStack;
+    }
+
     /** Returns "Software". */
     @Override
     public String getType() {
