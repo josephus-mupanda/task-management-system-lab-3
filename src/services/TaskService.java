@@ -11,6 +11,7 @@ import utils.exceptions.TaskNotFoundException;
 import java.util.function.Predicate;
 
 // task ids are typed by the user, so uniqueness is checked in every project, not only in one.
+// addTask is synchronized so two threads cannot both pass the "id not used yet" check with the same id.
 public class TaskService {
 
     private final ProjectService projectService;
@@ -25,7 +26,7 @@ public class TaskService {
      * Throws InvalidInputException if the id is not like T001, if another task already has it,
      * or if the name is already used in this project.
      */
-    public Task addTask(Project project, String id, String name, Task.Status status, int hours, User assignee) {
+    public synchronized Task addTask(Project project, String id, String name, Task.Status status, int hours, User assignee) {
         // the format is checked first, so "TX01" gets the format error and not "already exists"
         String taskId = RegexValidator.requireTaskId(id);
         Predicate<String> isUnique = this::isIdAvailable;

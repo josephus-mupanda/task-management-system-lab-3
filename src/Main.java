@@ -1,4 +1,5 @@
 import models.Project;
+import services.ConcurrencyService;
 import services.ProjectService;
 import services.ReportService;
 import services.StreamService;
@@ -21,6 +22,7 @@ public class Main {
         TaskService taskService = new TaskService(projectService);
         ReportService reportService = new ReportService(projectService);
         StreamService streamService = new StreamService(projectService);
+        ConcurrencyService concurrencyService = new ConcurrencyService();
         UserService userService = new UserService();
 
         // the users are not saved in the file, so the same two users exist every time the program starts
@@ -33,7 +35,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         try {
             ConsoleMenu menu = new ConsoleMenu(scanner, projectService, taskService, reportService,
-                    streamService, userService);
+                    streamService, concurrencyService, userService);
             menu.start();
         } catch (NoSuchElementException e) {
             // happens when the input is closed (for example Ctrl+D)
