@@ -1,6 +1,6 @@
 package models;
 
-// RegularUser and AdminUser say what they are allowed to do with canModify()
+// abstract so the menu asks canModify() instead of checking the role name
 public abstract class User {
 
     private final String id;

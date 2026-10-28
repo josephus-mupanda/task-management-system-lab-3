@@ -6,6 +6,7 @@ import models.Task;
 import models.User;
 import services.ProjectService;
 import services.ReportService;
+import services.StreamService;
 import services.TaskService;
 import services.UserService;
 import utils.exceptions.EmptyProjectException;
@@ -14,31 +15,38 @@ import utils.exceptions.ProjectNotFoundException;
 import utils.exceptions.TaskNotFoundException;
 
 import java.text.DecimalFormat;
+import java.util.List;
 import java.util.Scanner;
 
-// all the screens: menus, reading input with retry, tables and reports
+// the only class that reads the keyboard and prints, so the services can be tested without a console
 public class ConsoleMenu {
 
     public static final String LINE = "─".repeat(80);
 
-    private static final int BOX_WIDTH = 44;
+    private static final int BOX_WIDTH = 40;
+
+    // 70 comes from the lab example: projects.values().stream().filter(p -> p.getCompletionRate() > 70)
+    private static final int COMPLETION_LIMIT = 70;
 
     private final Scanner scanner;
     private final ProjectService projectService;
     private final TaskService taskService;
     private final ReportService reportService;
+    private final StreamService streamService;
     private final UserService userService;
     private User currentUser;
 
     /** Creates the menu, the first user of the user service is logged in. */
     public ConsoleMenu(Scanner scanner, ProjectService projectService, TaskService taskService,
-                       ReportService reportService, UserService userService) {
+                       ReportService reportService, StreamService streamService,
+                       UserService userService) {
         this.scanner = scanner;
         this.projectService = projectService;
         this.taskService = taskService;
         this.reportService = reportService;
+        this.streamService = streamService;
         this.userService = userService;
-        this.currentUser = userService.getUsers()[0];
+        this.currentUser = userService.getUsers().get(0);
     }
 
     // ---------- printing utility methods ----------
@@ -55,9 +63,9 @@ public class ConsoleMenu {
         System.out.println();
     }
 
-    /** Prints an error like "❌ Error: TaskNotFoundException – Task 'T999' was not found in the project." */
+    /** Prints an error like "✗ Error: Task 'T999' was not found in the project." */
     public static void printError(RuntimeException error) {
-        System.out.println("❌ Error: " + error.getClass().getSimpleName() + " – " + error.getMessage());
+        System.out.println("✗ Error: " + error.getMessage());
     }
 
     /** Prints a message with a check mark. */
@@ -182,6 +190,38 @@ public class ConsoleMenu {
         }
     }
 
+    // a wrong id is a typing mistake, so we ask again instead of aborting the whole operation
+    private String readNewProjectId(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                String id = ValidationUtils.requireText(scanner.nextLine(), "Project ID");
+                if (projectService.idExists(id)) {
+                    throw new InvalidInputException("Project ID '" + id + "' already exists.");
+                }
+                return id;
+            } catch (InvalidInputException e) {
+                showRetry(e);
+            }
+        }
+    }
+
+    // same reason as readNewProjectId: a typing mistake is easy to fix by typing again
+    private String readNewTaskId(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                String id = ValidationUtils.requireText(scanner.nextLine(), "Task ID");
+                if (!taskService.isIdAvailable(id)) {
+                    throw new InvalidInputException("Task ID '" + id + "' already exists.");
+                }
+                return id;
+            } catch (InvalidInputException e) {
+                showRetry(e);
+            }
+        }
+    }
+
     private int readRole(String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -194,7 +234,7 @@ public class ConsoleMenu {
         }
     }
 
-    // asks until the project exists, returns null if the user types 0
+    // returns null when the user types 0, so the caller can cancel without an exception
     private Project askForProject(String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -216,7 +256,7 @@ public class ConsoleMenu {
         }
     }
 
-    // asks until the user exists, returns null if the user types 0
+    // returns null when the user types 0, so a task can be left unassigned
     private User askForUser(String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -270,7 +310,7 @@ public class ConsoleMenu {
     }
 
     private void displayMainMenu() {
-        printHeader("JAVA PROJECT MANAGEMENT SYSTEM");
+        printHeader("JAVA PROJECT MANAGEMENT SYSTEM v3.0");
         System.out.println("Current User: " + currentUser.getName() + " (" + currentUser.getRole() + ")");
         System.out.println();
         System.out.println("Main Menu:");
@@ -283,12 +323,12 @@ public class ConsoleMenu {
         System.out.println();
     }
 
-    // regular users can view and add, only admins can change or remove
+    // one check for every menu, so the admin rule is written only once
     private boolean requireModifyAccess(String action) {
         if (currentUser.canModify()) {
             return true;
         }
-        System.out.println("❌ Error: Access denied. Only admins can " + action + ".");
+        System.out.println("✗ Error: Access denied. Only admins can " + action + ".");
         return false;
     }
 
@@ -301,10 +341,11 @@ public class ConsoleMenu {
             printHeader("MANAGE PROJECTS");
             System.out.println("1. Browse Project Catalog");
             System.out.println("2. Add New Project");
-            System.out.println("3. Back to Main Menu");
+            System.out.println("3. Remove Project");
+            System.out.println("4. Back to Main Menu");
             System.out.println();
 
-            choice = readChoice("Enter your choice: ", 1, 3);
+            choice = readChoice("Enter your choice: ", 1, 4);
 
             try {
                 switch (choice) {
@@ -314,28 +355,46 @@ public class ConsoleMenu {
                     case 2:
                         addProject();
                         break;
+                    case 3:
+                        removeProject();
+                        break;
                     default:
                         break;
                 }
             } catch (InvalidInputException | ProjectNotFoundException | TaskNotFoundException | EmptyProjectException e) {
                 showAbort(e, "project menu");
             }
-        } while (choice != 3);
+        } while (choice != 4);
+    }
+
+    private void removeProject() {
+        if (!requireModifyAccess("remove projects")) {
+            return;
+        }
+
+        displayProjectList();
+        Project project = askForProject("Enter project ID to remove (or 0 to cancel): ");
+        if (project == null) {
+            return;
+        }
+        projectService.removeProject(project.getId());
+        printSuccess("Project '" + project.getName() + "' removed with its " + project.getTaskCount() + " task(s).");
     }
 
     private void browseCatalog() {
         while (true) {
             printHeader("PROJECT CATALOG");
             System.out.println("Filter Options:");
-            System.out.println("1. View All Projects (" + projectService.getProjects().length + ")");
+            System.out.println("1. View All Projects (" + projectService.getProjects().size() + ")");
             System.out.println("2. Software Projects Only");
             System.out.println("3. Hardware Projects Only");
             System.out.println("4. Search by Budget Range");
+            System.out.println("5. Completed Projects (above " + COMPLETION_LIMIT + "%)");
             System.out.println("0. Back");
             System.out.println();
 
-            int choice = readChoice("Enter filter choice: ", 0, 4);
-            Project[] list;
+            int choice = readChoice("Enter filter choice: ", 0, 5);
+            List<Project> list;
 
             switch (choice) {
                 case 0:
@@ -349,13 +408,16 @@ public class ConsoleMenu {
                 case 3:
                     list = projectService.getByType("Hardware");
                     break;
-                default:
+                case 4:
                     list = searchByBudget();
+                    break;
+                default:
+                    list = streamService.projectsAboveCompletion(COMPLETION_LIMIT);
             }
 
             System.out.println();
             displayProjects(list);
-            if (list.length > 0) {
+            if (!list.isEmpty()) {
                 Project project = askForProject("Enter project ID to view details (or 0 to return): ");
                 if (project != null) {
                     projectDetails(project);
@@ -364,7 +426,7 @@ public class ConsoleMenu {
         }
     }
 
-    private Project[] searchByBudget() {
+    private List<Project> searchByBudget() {
         while (true) {
             double min = readNumber("Enter minimum budget: ", "Minimum budget");
             double max = readNumber("Enter maximum budget: ", "Maximum budget");
@@ -377,7 +439,7 @@ public class ConsoleMenu {
         }
     }
 
-    // a wrong budget, team size or duration is refused by the Project constructor (InvalidProjectDataException)
+    // no budget or team size check here: the Project constructor already refuses wrong values
     private void addProject() {
         printHeader("ADD NEW PROJECT");
         System.out.println("1. Software Project");
@@ -386,9 +448,10 @@ public class ConsoleMenu {
 
         int type = readChoice("Choose project type: ", 1, 2);
 
+        String id = readNewProjectId("Enter new project ID: ");
         String name = readText("Enter project name: ", "Project name");
         while (projectService.nameExists(name)) {
-            System.out.println("❌ Error: A project named '" + name + "' already exists.");
+            System.out.println("✗ Error: A project named '" + name + "' already exists.");
             System.out.println("Please try again.");
             System.out.println();
             name = readText("Enter project name: ", "Project name");
@@ -402,10 +465,10 @@ public class ConsoleMenu {
         Project project;
         if (type == 1) {
             String techStack = readText("Enter tech stack: ", "Tech stack");
-            project = projectService.createSoftwareProject(name, description, budget, teamSize, duration, techStack);
+            project = projectService.createSoftwareProject(id, name, description, budget, teamSize, duration, techStack);
         } else {
             String deviceType = readText("Enter device type: ", "Device type");
-            project = projectService.createHardwareProject(name, description, budget, teamSize, duration, deviceType);
+            project = projectService.createHardwareProject(id, name, description, budget, teamSize, duration, deviceType);
         }
 
         printSuccess("Project '" + project.getName() + "' successfully created (ID: " + project.getId() + ").");
@@ -503,7 +566,7 @@ public class ConsoleMenu {
         } while (choice != 6);
     }
 
-    // throws EmptyProjectException when the project has no tasks, the task menu catches it
+    // no hasTasks() check here: EmptyProjectException goes up to the task menu, which shows the error
     private void calculateCompletion() {
         displayProjectList();
 
@@ -533,7 +596,7 @@ public class ConsoleMenu {
         System.out.println("Completion Rate: " + completionText(project));
     }
 
-    // when scope is null the project is asked first, otherwise the task goes into scope
+    // scope is null from the task menu and set from project details, so one method serves both screens
     private void addTask(Project scope) {
         printHeader("ADD NEW TASK");
 
@@ -545,6 +608,7 @@ public class ConsoleMenu {
             }
         }
 
+        String id = readNewTaskId("Enter new task ID: ");
         String name = readText("Enter task name: ", "Task name");
         Task.Status status = readStatus("Enter status (Pending/In Progress/Completed): ");
         int hours = readPositiveInt("Enter estimated hours: ", "Hours");
@@ -553,11 +617,11 @@ public class ConsoleMenu {
         displayUsers();
         User assignee = askForUser("Enter assigned user ID (or 0 for nobody): ");
 
-        Task task = taskService.addTask(project, name, status, hours, assignee);
-        printSuccess("Task '" + task.getName() + "' successfully added to Project " + project.getId() + ".");
+        Task task = taskService.addTask(project, id, name, status, hours, assignee);
+        printSuccess("Task \"" + task.getName() + "\" added successfully.");
     }
 
-    // throws TaskNotFoundException when the task does not exist, the menu catches it
+    // no check here: TaskNotFoundException goes up to the menu, which shows the error
     private void updateTaskStatus(Project scope) {
         if (!requireModifyAccess("update tasks")) {
             return;
@@ -583,7 +647,7 @@ public class ConsoleMenu {
         printSuccess("Task '" + removed.getName() + "' removed from Project " + owner.getId() + ".");
     }
 
-    // the project that holds the task: the scope if there is one, otherwise we search every project
+    // from the task menu we only know the task id, so the project that holds it must be searched
     private Project ownerOf(Project scope, String taskId) {
         if (scope != null) {
             return scope;
@@ -651,48 +715,25 @@ public class ConsoleMenu {
 
     // ---------- tables and reports ----------
 
-    private void displayProjects(Project[] list) {
-        if (list.length == 0) {
+    private void displayProjects(List<Project> list) {
+        if (list.isEmpty()) {
             System.out.println("No projects found.");
             return;
         }
 
-        String[] types = {"Software", "Hardware"};
-
-        for (String type : types) {
-            int found = 0;
-            for (Project project : list) {
-                if (project.getType().equalsIgnoreCase(type)) {
-                    found++;
-                }
-            }
-            if (found == 0) {
-                continue;
-            }
-
-            System.out.println(type + " Projects (" + found + ")");
-            System.out.println(LINE);
-            System.out.printf("%-6s | %-20s | %-10s | %-9s | %-9s | %s%n",
-                    "ID", "PROJECT NAME", "TYPE", "TEAM SIZE", "BUDGET", "DONE");
-            System.out.println(LINE);
-
-            for (Project project : list) {
-                if (project.getType().equalsIgnoreCase(type)) {
-                    displayProjectRow(project);
-                }
-            }
-            System.out.println();
-        }
-        System.out.println("Total projects: " + list.length);
+        String line = "─".repeat(66);
+        System.out.println(line);
+        System.out.printf(" %-6s │ %-20s │ %-9s │ %-5s │ %s%n", "ID", "PROJECT NAME", "TYPE", "TASKS", "COMPLETED (%)");
+        System.out.println(line);
+        list.forEach(this::displayProjectRow);
+        System.out.println(line);
+        System.out.println("Total projects: " + list.size());
     }
 
     private void displayProjectRow(Project project) {
-        System.out.printf("%-6s | %-20s | %-10s | %-9d | %-9s | %s%n",
-                project.getId(), project.getName(), project.getType(), project.getTeamSize(),
-                "$" + formatBudget(project.getBudget()),
+        System.out.printf(" %-6s │ %-20s │ %-9s │ %-5d │ %s%n",
+                project.getId(), project.getName(), project.getType(), project.getTaskCount(),
                 project.hasTasks() ? formatPercent(project.calculateCompletionPercentage()) : "N/A");
-        System.out.println("       | Description: " + project.getDescription());
-        System.out.println(LINE);
     }
 
     private void displayProjectList() {
@@ -704,9 +745,9 @@ public class ConsoleMenu {
     }
 
     private void displayTasks(Project project) {
-        Task[] tasks = project.getTasks();
+        List<Task> tasks = project.getTasks();
 
-        if (tasks.length == 0) {
+        if (tasks.isEmpty()) {
             System.out.println("No tasks found.");
             return;
         }
@@ -745,8 +786,8 @@ public class ConsoleMenu {
     private void showStatusReport() {
         printHeader("PROJECT STATUS REPORT");
 
-        StatusReport[] reports = reportService.generateReports();
-        if (reports.length == 0) {
+        List<StatusReport> reports = reportService.generateReports();
+        if (reports.isEmpty()) {
             System.out.println("No projects found.");
             return;
         }
@@ -756,24 +797,12 @@ public class ConsoleMenu {
                 "PROJECT ID", "PROJECT NAME", "TASKS", "COMPLETED", "PROGRESS (%)");
         System.out.println(LINE);
 
-        int total = 0;
-        int completed = 0;
-        int inProgress = 0;
-        int pending = 0;
-
-        for (StatusReport report : reports) {
-            System.out.printf("%-10s | %-20s | %s | %s | %s%n",
-                    report.getProjectId(),
-                    report.getProjectName(),
-                    center(String.valueOf(report.getTotalTasks()), 5),
-                    center(String.valueOf(report.getCompletedTasks()), 9),
-                    report.hasTasks() ? formatPercent(report.getPercentage()) : "N/A");
-
-            total += report.getTotalTasks();
-            completed += report.getCompletedTasks();
-            inProgress += report.getInProgressTasks();
-            pending += report.getPendingTasks();
-        }
+        reports.forEach(report -> System.out.printf("%-10s | %-20s | %s | %s | %s%n",
+                report.getProjectId(),
+                report.getProjectName(),
+                center(String.valueOf(report.getTotalTasks()), 5),
+                center(String.valueOf(report.getCompletedTasks()), 9),
+                report.hasTasks() ? formatPercent(report.getPercentage()) : "N/A"));
         System.out.println(LINE);
 
         try {
@@ -784,20 +813,17 @@ public class ConsoleMenu {
             printError(e);
         }
 
+        // the totals are taken from the reports, so they always match the table above
         System.out.println("\nTask Statistics:");
-        System.out.println("Total: " + total);
-        System.out.println("Completed: " + completed);
-        System.out.println("In Progress: " + inProgress);
-        System.out.println("Pending: " + pending);
+        System.out.println("Total: " + reports.stream().mapToInt(StatusReport::getTotalTasks).sum());
+        System.out.println("Completed: " + reports.stream().mapToInt(StatusReport::getCompletedTasks).sum());
+        System.out.println("In Progress: " + reports.stream().mapToInt(StatusReport::getInProgressTasks).sum());
+        System.out.println("Pending: " + reports.stream().mapToInt(StatusReport::getPendingTasks).sum());
 
         System.out.println("\nSummary:");
-        for (StatusReport report : reports) {
-            if (report.hasTasks()) {
-                System.out.println(report.getProjectName() + " is " + formatPercent(report.getPercentage()) + " complete");
-            } else {
-                System.out.println(report.getProjectName() + " has no tasks yet");
-            }
-        }
+        reports.forEach(report -> System.out.println(report.hasTasks()
+                ? report.getProjectName() + " is " + formatPercent(report.getPercentage()) + " complete"
+                : report.getProjectName() + " has no tasks yet"));
 
         printSuccess("Report generated successfully.");
     }

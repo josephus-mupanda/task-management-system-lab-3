@@ -3,47 +3,60 @@ package services;
 import models.Project;
 import models.Task;
 import models.User;
+import utils.FunctionalUtils;
 import utils.ValidationUtils;
 import utils.exceptions.InvalidInputException;
 import utils.exceptions.TaskNotFoundException;
 
-// task operations, task ids (TSK001...) are unique across all projects
+import java.util.function.Predicate;
+
+// task ids are typed by the user, so uniqueness is checked in every project, not only in one.
 public class TaskService {
 
     private final ProjectService projectService;
-    private int nextNumber = 1;
 
     /** Uses the project service to look for tasks in every project. */
     public TaskService(ProjectService projectService) {
         this.projectService = projectService;
     }
 
-    /** Creates a task with the next id and adds it to the project, throws InvalidInputException if the name is already used there. */
-    public Task addTask(Project project, String name, Task.Status status, int hours, User assignee) {
+    /**
+     * Creates a task and adds it to the project.
+     * Throws InvalidInputException if the id is empty, if another task already has it,
+     * or if the name is already used in this project.
+     */
+    public Task addTask(Project project, String id, String name, Task.Status status, int hours, User assignee) {
+        String taskId = ValidationUtils.requireText(id, "Task ID");
+        // a Predicate checks that no task of any project has this id yet
+        Predicate<String> isUnique = this::isIdAvailable;
+        FunctionalUtils.validate(taskId, isUnique, "Task ID '" + taskId + "' already exists.");
+
         if (project.hasTaskNamed(name)) {
             throw new InvalidInputException("A task named '" + name.trim() + "' already exists in this project.");
         }
-        Task task = new Task(String.format("TSK%03d", nextNumber), name, status, hours);
+        Task task = new Task(taskId, name, status, hours);
         task.setAssignedTo(assignee);
         project.addTask(task);
-        nextNumber++;
         return task;
+    }
+
+    /** Returns true if no project has a task with this id. */
+    public boolean isIdAvailable(String id) {
+        return projectService.getProjects().stream().noneMatch(project -> project.hasTask(id.trim()));
     }
 
     /** Returns the project that has this task, throws TaskNotFoundException if no project has it. */
     public Project findProjectOfTask(String input) {
-        String taskId = ValidationUtils.normalizeId(input, "TSK");
-        for (Project project : projectService.getProjects()) {
-            if (project.hasTask(taskId)) {
-                return project;
-            }
-        }
-        throw new TaskNotFoundException(input.trim());
+        String taskId = ValidationUtils.requireText(input, "Task ID");
+        return projectService.getProjects().stream()
+                .filter(project -> project.hasTask(taskId))
+                .findFirst()
+                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
     /** Finds a task inside one project, throws TaskNotFoundException if it is not there. */
     public Task findTask(Project project, String input) {
-        return project.findTask(ValidationUtils.normalizeId(input, "TSK"));
+        return project.findTask(ValidationUtils.requireText(input, "Task ID"));
     }
 
     /** Changes the status of a task, throws TaskNotFoundException if it is not in the project. */

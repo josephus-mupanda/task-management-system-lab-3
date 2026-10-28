@@ -1,9 +1,9 @@
 package models;
 
-public class AdminUser extends User {
+public class AdminMember extends User {
 
     /** Creates an admin user. */
-    public AdminUser(String id, String name, String email) {
+    public AdminMember(String id, String name, String email) {
         super(id, name, email, "Admin");
     }
 

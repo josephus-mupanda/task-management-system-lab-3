@@ -3,110 +3,89 @@ package services;
 import models.HardwareProject;
 import models.Project;
 import models.SoftwareProject;
+import utils.FunctionalUtils;
 import utils.ValidationUtils;
 import utils.exceptions.InvalidProjectDataException;
 import utils.exceptions.ProjectNotFoundException;
 
-import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-// keeps the projects in an array, it never prints or reads the keyboard
+// a HashMap so a project is found by its id in one step. It never prints, so it can be tested without a console.
 public class ProjectService {
 
-    private Project[] projects = new Project[10];
-    private int count;
-    private int nextNumber = 1;
+    private final Map<String, Project> projects = new HashMap<>();
 
-    /** Creates a software project with the next id (PRJ001, PRJ002...) and saves it. */
-    public Project createSoftwareProject(String name, String description, double budget,
+    /** Creates a software project and saves it, throws InvalidProjectDataException if a value is not valid. */
+    public Project createSoftwareProject(String id, String name, String description, double budget,
                                          int teamSize, int durationWeeks, String techStack) {
-        Project project = new SoftwareProject(nextId(), name, description, budget, teamSize, durationWeeks, techStack);
+        Project project = new SoftwareProject(id, name, description, budget, teamSize, durationWeeks, techStack);
         addProject(project);
-        nextNumber++;
         return project;
     }
 
-    /** Creates a hardware project with the next id (PRJ001, PRJ002...) and saves it. */
-    public Project createHardwareProject(String name, String description, double budget,
+    /** Creates a hardware project and saves it, throws InvalidProjectDataException if a value is not valid. */
+    public Project createHardwareProject(String id, String name, String description, double budget,
                                          int teamSize, int durationWeeks, String deviceType) {
-        Project project = new HardwareProject(nextId(), name, description, budget, teamSize, durationWeeks, deviceType);
+        Project project = new HardwareProject(id, name, description, budget, teamSize, durationWeeks, deviceType);
         addProject(project);
-        nextNumber++;
         return project;
     }
 
     /** Saves a project, throws InvalidProjectDataException if its id or its name is already used. */
     public void addProject(Project project) {
-        if (findById(project.getId()) != null) {
+        if (projects.containsKey(project.getId())) {
             throw new InvalidProjectDataException("Project ID '" + project.getId() + "' already exists.");
         }
         if (nameExists(project.getName())) {
             throw new InvalidProjectDataException("A project named '" + project.getName() + "' already exists.");
         }
-        if (count == projects.length) {
-            projects = Arrays.copyOf(projects, projects.length * 2);
-        }
-        projects[count++] = project;
+        projects.put(project.getId(), project);
+    }
+
+    /** Removes a project and its tasks, throws ProjectNotFoundException if there is none with this id. */
+    public Project removeProject(String input) {
+        Project project = findProject(input);
+        projects.remove(project.getId());
+        return project;
     }
 
     /** Returns true if a project already has this name (ignoring case). */
     public boolean nameExists(String name) {
-        for (int i = 0; i < count; i++) {
-            if (projects[i].getName().equalsIgnoreCase(name.trim())) {
-                return true;
-            }
-        }
-        return false;
+        return projects.values().stream().anyMatch(project -> project.getName().equalsIgnoreCase(name.trim()));
     }
 
-    /** Finds a project from what the user typed ("PRJ001" or "1"), throws ProjectNotFoundException if there is none. */
+    /** Finds a project by its id, throws ProjectNotFoundException if there is none. */
     public Project findProject(String input) {
-        Project project = findById(ValidationUtils.normalizeId(input, "PRJ"));
+        Project project = projects.get(ValidationUtils.requireText(input, "Project ID"));
         if (project == null) {
             throw new ProjectNotFoundException(input.trim());
         }
         return project;
     }
 
-    /** Returns all the projects. */
-    public Project[] getProjects() {
-        return Arrays.copyOf(projects, count);
+    /** Returns all the projects sorted by id (a HashMap has no order of its own). */
+    public List<Project> getProjects() {
+        return projects.values().stream()
+                .sorted(Comparator.comparing(Project::getId))
+                .toList();
     }
 
     /** Returns the projects of one type, "Software" or "Hardware". */
-    public Project[] getByType(String type) {
-        Project[] result = new Project[count];
-        int found = 0;
-        for (int i = 0; i < count; i++) {
-            if (projects[i].getType().equalsIgnoreCase(type)) {
-                result[found++] = projects[i];
-            }
-        }
-        return Arrays.copyOf(result, found);
+    public List<Project> getByType(String type) {
+        return FunctionalUtils.filter(getProjects(), project -> project.getType().equalsIgnoreCase(type));
     }
 
     /** Returns the projects with a budget between min and max. */
-    public Project[] getByBudgetRange(double min, double max) {
-        Project[] result = new Project[count];
-        int found = 0;
-        for (int i = 0; i < count; i++) {
-            double budget = projects[i].getBudget();
-            if (budget >= min && budget <= max) {
-                result[found++] = projects[i];
-            }
-        }
-        return Arrays.copyOf(result, found);
+    public List<Project> getByBudgetRange(double min, double max) {
+        return FunctionalUtils.filter(getProjects(),
+                project -> project.getBudget() >= min && project.getBudget() <= max);
     }
 
-    private Project findById(String id) {
-        for (int i = 0; i < count; i++) {
-            if (projects[i].getId().equals(id)) {
-                return projects[i];
-            }
-        }
-        return null;
-    }
-
-    private String nextId() {
-        return String.format("PRJ%03d", nextNumber);
+    /** Returns true if a project already has this id. */
+    public boolean idExists(String id) {
+        return projects.containsKey(id.trim());
     }
 }

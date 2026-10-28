@@ -1,6 +1,6 @@
 package models;
 
-// the numbers of one project at the moment the report is made
+// keeps a copy of the numbers, so the report does not change if the tasks change after it is made
 public class StatusReport {
 
     private final String projectId;

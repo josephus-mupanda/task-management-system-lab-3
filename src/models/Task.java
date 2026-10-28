@@ -40,9 +40,9 @@ public class Task implements Completable {
     private Status status;
     private User assignedTo;
 
-    /** Creates a task, throws InvalidInputException if the name is empty or the hours are not positive. */
+    /** Creates a task, throws InvalidInputException if the id or the name is empty or the hours are not positive. */
     public Task(String id, String name, Status status, int hours) {
-        this.id = id;
+        this.id = ValidationUtils.requireText(id, "Task ID");
         this.name = ValidationUtils.requireText(name, "Task name");
         this.status = status;
         this.hours = ValidationUtils.requirePositive(hours, "Hours");
@@ -59,7 +59,7 @@ public class Task implements Completable {
         return status == Status.COMPLETED;
     }
 
-    /** Returns the id, ex: TSK001. */
+    /** Returns the id, ex: T001. */
     public String getId() {
         return id;
     }
@@ -74,8 +74,13 @@ public class Task implements Completable {
         return hours;
     }
 
-    /** Returns the status. */
-    public Status getStatus() {
+    /** Returns the status as text, ex: "Completed", so it can be compared with getStatus().equals("Completed"). */
+    public String getStatus() {
+        return status.toString();
+    }
+
+    /** Returns the status as a Task.Status value, used when the code needs the next status or compares statuses. */
+    public Status getStatusType() {
         return status;
     }
 

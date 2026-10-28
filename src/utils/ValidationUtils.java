@@ -2,7 +2,7 @@ package utils;
 
 import utils.exceptions.InvalidInputException;
 
-// all the validation rules are here, each method returns the value or throws InvalidInputException
+// rules only, no keyboard reading, so each rule can be tested on its own
 public class ValidationUtils {
 
     /** Checks that the text is not empty and returns it without the extra spaces. */
@@ -76,18 +76,6 @@ public class ValidationUtils {
     public static void requireValidRange(double min, double max) {
         if (min < 0 || max < min) {
             throw new InvalidInputException("Minimum must be 0 or more and not above maximum.");
-        }
-    }
-
-    /** Turns what the user typed into an id: "PRJ001", "prj1" and "1" all give "PRJ001". */
-    public static String normalizeId(String input, String prefix) {
-        String value = requireText(input, "ID").toUpperCase();
-        String number = value.startsWith(prefix) ? value.substring(prefix.length()) : value;
-        try {
-            return prefix + String.format("%03d", Integer.parseInt(number));
-        } catch (NumberFormatException e) {
-            // not a number, like "P999": keep it as typed so it is reported as not found
-            return value;
         }
     }
 }
